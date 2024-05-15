@@ -8,12 +8,21 @@ import (
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/rankitbishnoi-srijan/gopcommerce/src/db"
+	"github.com/rankitbishnoi-srijan/gopcommerce/src/utils"
 )
 
-func NewRouter() *gin.Engine {
+func NewRouter(db *mongo.Client) *gin.Engine {
 	// Set the router as the default one shipped with Gin
-	router := gin.Default()
+	router := gin.New()
 	expectedHost := "localhost:8080"
+
+	// Setup middleware
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	router.Use(ApiMiddleware(db))
 
 	// Setup Security Headers
 	router.Use(func(c *gin.Context) {
@@ -49,15 +58,40 @@ func NewRouter() *gin.Engine {
 	return router
 }
 
+// ApiMiddleware will add the db connection to the context
+func ApiMiddleware(db *mongo.Client) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set("databaseConn", db)
+		c.Next()
+	}
+}
+
 func main() {
+	// Load environment variables
+	if err := utils.LoadEnv(); err != nil {
+		log.Fatalf("Failed to load environment variables: %v", err)
+	}
 
 	httpPort := os.Getenv("PORT")
 	if httpPort == "" {
 		httpPort = "8080"
 	}
 
+	// Initialize MongoDB
+	uri := os.Getenv("MONGODB_URI")
+	if uri == "" {
+		log.Fatal("MONGODB_URI must be set")
+	}
+	client, err := db.Connect(uri)
+
+	if err != nil {
+		log.Fatalf("Failed to connect to MongoDB: %v", err)
+	}
+
+	defer db.Disconnect(client)
+
 	// Initialize router
-	router := NewRouter()
+	router := NewRouter(client)
 
 	// Create server with timeout
 	srv := &http.Server{
