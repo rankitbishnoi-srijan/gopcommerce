@@ -1,0 +1,176 @@
+openapi: "3.1.0"
+info:
+  version: 1.0.0
+  title: GopCommerce API Documentation
+  description: API documentation for the GopCommerce application
+  termsOfService: http://swagger.io/terms/
+  contact:
+    name: GopCommerce
+    url: http://gopcommerce.com
+    email:
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+tags:
+  - name: Users
+    description: User management
+  - name: Authentication
+    description: User authentication
+servers:
+  - url: "http://localhost:8080/api"
+    description: Local server
+paths:
+  /users:
+    get:
+      summary: Get a list of Users
+      operationId: getUsers
+      produces:
+        - application/json
+      tags:
+        - Users
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: A list of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      summary: Create a new user
+      operationId: createUser
+      tags:
+        - Users
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      security:
+        - Bearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/{id}:
+    get:
+      summary: Get a specific user
+      operationId: getUser
+      tags:
+        - Users
+      produces:
+        - application/json
+      security:
+        - Bearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    delete:
+      summary: Delete a specific user
+      operationId: deleteUser
+      tags:
+        - Users
+      produces:
+        - application/json
+      security:
+        - Bearer: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+  /login:
+    post:
+      summary: Authenticate a user
+      operationId: loginUser
+      tags:
+        - Authentication
+      consumes:
+        - application/json
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+      responses:
+        '200':
+          description: User authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '401':
+          description: Unauthorized
+  /logout:
+    post:
+      summary: Logout a user
+      operationId: logoutUser
+      tags:
+        - Authentication
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: User logged out
+components:
+  schemas:
+    Login:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    Token:
+      type: object
+      properties:
+        token:
+          type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+  securitySchemes:
+    Bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

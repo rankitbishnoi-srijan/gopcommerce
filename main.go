@@ -11,7 +11,12 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/rankitbishnoi-srijan/gopcommerce/src/db"
+	"github.com/rankitbishnoi-srijan/gopcommerce/src/packages/auth"
+	"github.com/rankitbishnoi-srijan/gopcommerce/src/packages/users"
 	"github.com/rankitbishnoi-srijan/gopcommerce/src/utils"
+
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func NewRouter(db *mongo.Client) *gin.Engine {
@@ -22,7 +27,7 @@ func NewRouter(db *mongo.Client) *gin.Engine {
 	// Setup middleware
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
-	router.Use(ApiMiddleware(db))
+	router.Use(DBMiddleware(db))
 
 	// Setup Security Headers
 	router.Use(func(c *gin.Context) {
@@ -43,6 +48,10 @@ func NewRouter(db *mongo.Client) *gin.Engine {
 	// Serve frontend static files
 	router.Use(static.Serve("/", static.LocalFile("./public/", true)))
 
+	// serve swagger ui with openapi.yml
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.URL("http://localhost:8080/openapi.yml")))
+
 	// Setup route group for the API
 	api := router.Group("/api")
 	{
@@ -51,15 +60,19 @@ func NewRouter(db *mongo.Client) *gin.Engine {
 				"message": "Uniform API",
 			})
 		}
+
 		api.GET("", apiHandler)
 		api.GET("/", apiHandler)
+
+		auth.RegisterHandlers(api)
+		users.RegisterHandlers(api)
 	}
 
 	return router
 }
 
-// ApiMiddleware will add the db connection to the context
-func ApiMiddleware(db *mongo.Client) gin.HandlerFunc {
+// DBMiddleware will add the db connection to the context
+func DBMiddleware(db *mongo.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Set("databaseConn", db)
 		c.Next()
